@@ -13,6 +13,7 @@ import {
     Col,
 } from "reactstrap";
 import ReactBSAlert from "react-bootstrap-sweetalert";
+import NotificationAlert from "react-notification-alert";
 import CardsHeader from "components/Headers/CardsHeader.js";
 import { getAllAddress, addAddress, updateAddress } from "actions/AddressAction";
 import { deleteOneItem } from "actions/AddressAction";
@@ -33,7 +34,28 @@ class Dashboard extends React.Component {
             curIdx: -1,
             alertscript: null,
         };
-    }   
+    }
+
+    notify = (type, title, msg) => {
+        let options = {
+            place: "tc",
+            message: (
+                <div className="alert-text">
+                <span className="alert-title" data-notify="title">
+                    {" "}
+                    {title}
+                </span>
+                <span data-notify="message">
+                    {msg}
+                </span>
+                </div>
+            ),
+            type: type,
+            icon: "ni ni-bell-55",
+            autoDismiss: 7
+        };
+        this.refs.notificationAlert.notificationAlert(options);
+    };
 
     componentDidMount = async(e) => {
         const user = await localStorage.getItem('user');
@@ -64,16 +86,17 @@ class Dashboard extends React.Component {
         e.preventDefault();
         const { nickName, addr, userid, btnTxt, renderData, originData, curIdx } = this.state;
         if( addr === '' || !userid ) {
-            alert("Address field is required");
+            this.notify("warning", "Invalid Address", "Address field is required!");
             return;
         }
         if( btnTxt === 'Add ') {
             addAddress(userid, nickName, addr).then((res) => {
                 if( res.success ) {
                     originData.push(res.result);
-                    this.setState({renderData: originData, addNew: false, addr: ''});
+                    this.setState({renderData: originData, addNew: false, addr: '', nickName: ""});
+                    this.notify("success", "Success", "Address is added successfully!");
                 } else {
-                    alert(res.msg);
+                    this.notify("warning", "Fialed", res.msg);
                 }
             })
         } else {
@@ -91,9 +114,10 @@ class Dashboard extends React.Component {
                         nickname: nickName,
                         address: addr
                     });
-                    this.setState({renderData: originData, addNew: false, addr: ''});
+                    this.setState({renderData: originData, addNew: false, addr: '', nickName: ""});
+                    this.notify("success", "Success", "Address is updated successfully!");
                 } else {
-                    alert(res.msg);
+                    this.notify("warning", "Fialed", res.msg);
                 }
             })
         }
@@ -126,6 +150,7 @@ class Dashboard extends React.Component {
                                 let temp = this.state.renderData;
                                 temp.splice(parseInt(index), 1);
                                 this.setState({renderData: temp, alertscript: null});
+                                this.notify("success", "Success", "Address is deleted successfully!");
                             }
                         })
                     }}
@@ -158,7 +183,9 @@ class Dashboard extends React.Component {
         return (
         <>
             {this.state.alertscript}
-            
+            <div className="rna-wrapper">
+                <NotificationAlert ref="notificationAlert" />
+            </div>
             <CardsHeader name="CENNZnet Address Scan" parentName="CENNZnet" onChange={this.handleChange}/>
             <Container className="mt--6" fluid>
                 {addNew && <Row>
@@ -173,7 +200,9 @@ class Dashboard extends React.Component {
                                         <Button
                                             color="danger"
                                             href="#pablo"
-                                            onClick={e => this.setState({addNew: false, nickName: "", addr: ""})}
+                                            onClick={e => {
+                                                this.setState({addNew: false, nickName: "", addr: ""})
+                                            }}
                                             size="sm"
                                         >
                                             Cancel

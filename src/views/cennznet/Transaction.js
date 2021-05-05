@@ -15,6 +15,7 @@ import {
 } from "reactstrap";
 import { Api } from '@cennznet/api';
 import ReactBSAlert from "react-bootstrap-sweetalert";
+import NotificationAlert from "react-notification-alert";
 import CardsHeader from "components/Headers/CardsHeader.js";
 import { endpoint } from "constants/config";
 import { getAllTrans, getSetting, addSettings } from "actions/TransactionAction";
@@ -35,9 +36,31 @@ class Transactions extends React.Component {
             alertscript: null,
             isOpen: false,
             limit: 500,
+            loading: true,
         };
     }   
     
+    notify = (type, title, msg) => {
+        let options = {
+            place: "tc",
+            message: (
+                <div className="alert-text">
+                <span className="alert-title" data-notify="title">
+                    {" "}
+                    {title}
+                </span>
+                <span data-notify="message">
+                    {msg}
+                </span>
+                </div>
+            ),
+            type: type,
+            icon: "ni ni-bell-55",
+            autoDismiss: 7
+        };
+        this.refs.notificationAlert.notificationAlert(options);
+    };
+
     componentDidMount = async (e) => {
         getSetting().then((res) => {
             if( res.success && res.result.length > 0 ) {
@@ -50,16 +73,7 @@ class Transactions extends React.Component {
         })
         const user = await localStorage.getItem('user');
         this.setState({userid: user});
-        try{
-            const api = await Api.create({
-                provider: endpoint
-            });
-            await api.rpc.chain.subscribeNewHeads((header) => {
-                this.setState({currentBlock: parseInt(header.number).toString(), end: parseInt(header.number) });
-            });
-        } catch (e) {
-            console.log(e);
-        }
+        
         if( user ) {
             try {
                 getAllTrans(user).then((res) => {
@@ -74,14 +88,33 @@ class Transactions extends React.Component {
                 console.log(e);
             }
         }
+
+        try{
+            const api = await Api.create({
+                provider: endpoint
+            });
+            this.unsubscribe = await api.rpc.chain.subscribeNewHeads((header) => {
+                this.setState({currentBlock: parseInt(header.number).toString(), end: parseInt(header.number) });
+            });
+        } catch (e) {
+            console.log(e);
+        }
+    }
+
+    componentWillUnmount(){
+        if( this.api ) {
+            this.unsubscribe();
+            process.exit(0);
+        }
     }
     
     saveBlockRange = e => {
         e.preventDefault();
         const { limit, start, end } = this.state;
         addSettings(limit, start, end).then((res) => {
+            this.notify("success", "Success", "All data is stored successfully!");
         }).catch((err) => {
-            console.log(err);
+            this.notify("danger", "Failed", "Storing the data is failed!");
         })
     }
 
@@ -146,6 +179,7 @@ class Transactions extends React.Component {
                                 let temp = this.state.originData;
                                 temp.splice(parseInt(tempindex), 1);
                                 this.setState({renderData: temp, alertscript: null});
+                                this.notify("success", "Success", "Transaction was deleted successfully!");
                             }
                         })
                     }}
@@ -178,6 +212,9 @@ class Transactions extends React.Component {
         <>
             {modalScript}
             {alertscript}
+            <div className="rna-wrapper">
+                <NotificationAlert ref="notificationAlert" />
+            </div>
             <CardsHeader name="CENNZnet Transactions Scan" parentName="CENNZnet" onChange={this.handleChange}/>
             <Container className="mt--6" fluid>
                 <Row>
