@@ -11,12 +11,8 @@
 # production
 /build
 
-/src/assets/img
-/src/assets/fonts
-/src/assets/vendor
-
 # config
-constants
+
 # misc
 .DS_Store
 .env.local
