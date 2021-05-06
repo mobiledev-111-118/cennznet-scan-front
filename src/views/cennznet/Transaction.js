@@ -143,13 +143,13 @@ class Transactions extends React.Component {
                         <h5 className="h3 mb-0">Token Name:</h5>
                         <p>{item.tkname}</p>
                         <h5 className="h3 mb-0">From: </h5>
-                        <p>{item.from}</p>
+                        <p>{item.fromaddr}</p>
                         <h5 className="h3 mb-0">To: </h5>
-                        <p>{item.to}</p>
+                        <p>{item.toaddr}</p>
                         <h5 className="h3 mb-0">Quantity: </h5>
                         <p>{(parseInt(item.qty)/10000).toFixed(4)}</p>
                         <h5 className="h3 mb-0">Decimal: </h5>
-                        <p>{item.decimal}</p>
+                        <p>{item.tkdecimal}</p>
                         <h5 className="h3 mb-0">Date: </h5>
                         <p>{item.createdAt}</p>
                     </div>
@@ -319,7 +319,7 @@ class Transactions extends React.Component {
                                                     <td>{item.address}</td>
                                                     <td>{item.nickname}</td>
                                                     <td>{amt}</td>
-                                                    <td>{item.decimal}</td>
+                                                    <td>{item.tkdecimal}</td>
                                                     <td>
                                                         <Button
                                                             color="default"
