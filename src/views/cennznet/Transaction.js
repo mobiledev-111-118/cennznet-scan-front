@@ -20,6 +20,10 @@ import CardsHeader from "components/Headers/CardsHeader.js";
 import { endpoint } from "constants/config";
 import { getAllTrans, getSetting, addSettings } from "actions/TransactionAction";
 import { deleteOneItem } from "actions/TransactionAction";
+import { addAsset } from "actions/TransactionAction";
+import { updateAsset } from "actions/TransactionAction";
+import {assetdata} from "constants/config";
+import { invalid } from "moment";
 
 class Transactions extends React.Component {
     constructor(props) {
@@ -32,11 +36,19 @@ class Transactions extends React.Component {
             userid: -1,
             renderData: [],
             originData: [],
-            modalScript: null,
+            modalScript: false,
             alertscript: null,
             isOpen: false,
             limit: 500,
             loading: true,
+            address: "",
+            tkname: "",
+            nickname: "",
+            qty: 0,
+            tkdecimal: 18,
+            badd: false,
+            curID: -1,
+            invalid: false,
         };
     }   
     
@@ -72,7 +84,7 @@ class Transactions extends React.Component {
             }
         })
         const user = await localStorage.getItem('user');
-        this.setState({userid: user});
+        this.setState({userid: parseInt(user)});
         
         if( user ) {
             try {
@@ -96,6 +108,17 @@ class Transactions extends React.Component {
             this.unsubscribe = await api.rpc.chain.subscribeNewHeads((header) => {
                 this.setState({currentBlock: parseInt(header.number).toString(), end: parseInt(header.number) });
             });
+            // const res = await api.rpc.genericAsset.registeredAssets();
+            // const temp = [];
+            // res.map(element => {
+            //     console.log("element :: ", element)
+            //     temp.push({
+            //         asset_id: element[0],
+            //         symbol: element[1].symbol,
+            //         decimal: element[1].decimalPlaces,
+            //     })
+            // });
+            // console.log(temp, "====")
         } catch (e) {
             console.log(e);
         }
@@ -112,49 +135,24 @@ class Transactions extends React.Component {
         e.preventDefault();
         const { limit, start, end } = this.state;
         addSettings(limit, start, end).then((res) => {
-            this.notify("success", "Success", "All data is stored successfully!");
+            this.notify("success", "Success!", "All data is stored successfully!");
         }).catch((err) => {
-            this.notify("danger", "Failed", "Storing the data is failed!");
+            this.notify("danger", "Failed!", "Storing the data is failed!");
         })
     }
 
-    detailTransaction = (e, item) => {
+    detailTransaction = (e, item, idx) => {
+        
         e.preventDefault();
         this.setState({
-            modalScript: (
-                <Modal 
-                    className="modal-dialog-centered"
-                    isOpen={true}
-                    toggle={() => this.setState({ modalScript: null })}
-                >
-                    <div className="modal-header">
-                        <h1 >{item.nickname}</h1>
-                        <button
-                            aria-label="Close"
-                            className="close"
-                            data-dismiss="modal"
-                            type="button"
-                            onClick={() => this.setState({ modalScript: null })}
-                        >
-                            <span aria-hidden={true}>×</span>
-                        </button>
-                    </div>
-                    <div className="modal-body">
-                        <h5 className="h3 mb-0">Token Name:</h5>
-                        <p>{item.tkname}</p>
-                        <h5 className="h3 mb-0">From: </h5>
-                        <p>{item.fromaddr}</p>
-                        <h5 className="h3 mb-0">To: </h5>
-                        <p>{item.toaddr}</p>
-                        <h5 className="h3 mb-0">Quantity: </h5>
-                        <p>{(parseInt(item.qty)/10000).toFixed(4)}</p>
-                        <h5 className="h3 mb-0">Decimal: </h5>
-                        <p>{item.tkdecimal}</p>
-                        <h5 className="h3 mb-0">Date: </h5>
-                        <p>{item.createdAt}</p>
-                    </div>
-                </Modal>
-            )
+            modalScript:true,
+            badd: item === null ? true: false,
+            address: item === null ? "": item.address,
+            tkname: item == null ? "" : item.tkname,
+            nickname: item === null ? "" : item.nickname,
+            qty: item === null ? 0: item.qty,
+            tkdecimal: item === null ? 18: item.tkdecimal,
+            curID: idx
         })
     }
 
@@ -172,7 +170,7 @@ class Transactions extends React.Component {
                 <ReactBSAlert
                     warning
                     style={{ display: "block"}}
-                    title={`${deleteItem.nickname}\n${deleteItem.address}`}
+                    title={`${deleteItem.nickname}`}
                     onConfirm={() => {
                         deleteOneItem(deleteItem.id).then((res) => {
                             if( res.success ){
@@ -187,7 +185,7 @@ class Transactions extends React.Component {
                     confirmBtnBsStyle="warning"
                     btnSize=""
                 >
-                    Are you really going to delete this transaction?
+                    Are you really going to delete this Assets?
                 </ReactBSAlert>
             )
         })
@@ -206,11 +204,162 @@ class Transactions extends React.Component {
         }
     }
 
+    saveAsset = () => {
+        const { userid, address, tkname, nickname, qty, tkdecimal, curID, renderData, invalid } = this.state;
+        if( address === "" || nickname === "" || invalid ) {
+            this.notify("warning", "Warning!", "Asset id and nick name is required!");
+            return;
+        }
+        if( this.state.badd ) {
+            addAsset(userid, address, tkname, nickname, qty, tkdecimal).then((res) => {
+                if( res.success ) {
+                    renderData.push(res.result);
+                    this.setState({
+                        badd: false,
+                        modalScript: false,
+                        address: "",
+                        tkname: "",
+                        nickname: "",
+                        qty: 0,
+                        tkdecimal: 18,
+                        renderData: renderData
+                    });
+                    this.notify("success", "Success!", "Asset is stored successfully!");
+                } else {
+                    this.notify("danger", "Failed!", res.msg);
+                }
+            })
+        } else {
+            updateAsset(renderData[parseInt(curID)].id, address, tkname, nickname, qty, tkdecimal).then((res) => {
+                if( res.success ){
+                    const temp = renderData[parseInt(curID)];
+                    renderData.splice(parseInt(curID), 1, {
+                        ...temp,
+                        address, tkname, nickname, qty, tkdecimal
+                    });
+                    this.setState({
+                        badd: false,
+                        modalScript: false,
+                        address: "",
+                        tkname: "",
+                        nickname: "",
+                        qty: 0,
+                        tkdecimal: 18,
+                        renderData: renderData
+                    })
+                    this.notify("success", "Success!", "Updating success!");
+                } else {
+                    this.notify("danger", "Failed!", res.msg);
+                }
+            })
+        }
+    }
     render() {
-        const { renderData, end, start, limit, modalScript, alertscript } = this.state;
+        const { renderData, end, start, invalid, modalScript, alertscript, address, tkname, qty, nickname, tkdecimal, badd } = this.state;
         return (
         <>
-            {modalScript}
+            {modalScript && <Modal 
+                    className="modal-dialog-centered"
+                    isOpen={true}
+                    toggle={() => this.setState({ modalScript: false })}
+                >
+                    <div className="modal-header">
+                        <h1 >{badd? "Add New Asset Data" : "Modify the Asset Data"}</h1>
+                        <button
+                            aria-label="Close"
+                            className="close"
+                            data-dismiss="modal"
+                            type="button"
+                            onClick={() => this.setState({ modalScript: null })}
+                        >
+                            <span aria-hidden={true}>×</span>
+                        </button>
+                    </div>
+                    <div className="modal-body">
+                        <h5 className="h3 mt-2 mb-0">Asset ID</h5>
+                        <Input 
+                            value={address}
+                            placeholder="Input asset id" 
+                            className="mr-2 bm-2" 
+                            type="text"
+                            onChange={(e) => {
+                                const asset = e.target.value;
+                                if( asset === "" ) {
+                                    this.setState({
+                                        address: e.target.value,
+                                        invalid: false,
+                                    })
+                                    return;
+                                }
+                                const exist = assetdata.filter((_i) => _i.asset_id === asset );
+                                if( exist.length === 0 ) {
+                                    this.setState({
+                                        address: e.target.value,
+                                        invalid: true,
+                                    })
+                                } else {
+                                    this.setState({
+                                        address: e.target.value,
+                                        tkname: exist[0].symbol,
+                                        tkdecimal: exist[0].decimalPlaces,
+                                        invalid: false,
+                                    })
+                                }
+
+                            }}
+                        />
+                        {invalid && <h6 style={{color: 'red'}}>This asset is invalid!</h6>}
+                        <h5 className="h3 mb-0 mt-2 ">Symbol</h5>
+                        <Input 
+                            value={tkname}
+                            placeholder="Input asset id" 
+                            className="mr-2 bm-2" 
+                            type="text"
+                            readOnly
+                            onChange={(e) => this.setState({tkname: e.target.value})}
+                        />
+                        <h5 className="h3 mt-2 mb-0">Nick Name</h5>
+                        <Input 
+                            value={nickname}
+                            placeholder="Input asset id" 
+                            className="mr-2 bm-2" 
+                            type="text"
+                            onChange={(e) => this.setState({nickname: e.target.value})}
+                        />
+                        <h5 className="h3 mt-2 mb-0">Qty Min Token</h5>
+                        <Input 
+                            value={qty}
+                            placeholder="Input asset id" 
+                            className="mr-2 bm-2" 
+                            type="number"
+                            onChange={(e) => this.setState({qty: e.target.value})}
+                        />
+                        <h5 className="h3 mt-2 mb-0">Decimal</h5>
+                        <Input 
+                            value={tkdecimal}
+                            placeholder="Input asset id" 
+                            className="mr-2 bm-2" 
+                            type="number"
+                            readOnly
+                            onChange={(e) => this.setState({tkdecimal: e.target.value})}
+                        />
+                        <Row className="justify-content-right mt-4" style={{justifyContent: 'flex-end', paddingRight: 15}}>
+                            <Button color="danger" size="md" type="button" onClick={() => this.setState({
+                                modalScript: false,
+                                address: "",
+                                tkname: "",
+                                nickname: "",
+                                qty: 0,
+                                tkdecimal: 18,
+                            })}>
+                                Cancel
+                            </Button>
+                            <Button color="primary" size="md" type="button" onClick={this.saveAsset}>
+                                Save
+                            </Button>
+                        </Row>
+                    </div>
+                </Modal>}
             {alertscript}
             <div className="rna-wrapper">
                 <NotificationAlert ref="notificationAlert" />
@@ -234,7 +383,7 @@ class Transactions extends React.Component {
                                 <ListGroup className="list my--3" flush>
                                     <ListGroupItem className="px-0">
                                         <Row className="align-items-center">
-                                            <Col md="4">
+                                            {/* <Col md="4">
                                                 <div className="ml-2">Limited Qty</div>
                                                 <Input 
                                                     value={limit}
@@ -243,8 +392,8 @@ class Transactions extends React.Component {
                                                     type="number"
                                                     onChange={(e) => this.setState({limit: e.target.value})}
                                                 />
-                                            </Col>
-                                            <Col md="4">
+                                            </Col> */}
+                                            <Col md="6">
                                                 <div className="ml-2">Start Block</div>
                                                 <Input 
                                                     value={start}
@@ -254,7 +403,7 @@ class Transactions extends React.Component {
                                                     onChange={(e) => this.setState({start: e.target.value})}
                                                 />
                                             </Col>
-                                            <Col md="4">
+                                            <Col md="6">
                                                 <div className="ml-2">End Block</div>
                                                 <Input
                                                     value={end}
@@ -283,16 +432,16 @@ class Transactions extends React.Component {
                             <CardHeader className="border-0">
                                 <Row className="align-items-center">
                                     <div className="col">
-                                        <h3 className="mb-0">Transaction Lists</h3>
+                                        <h3 className="mb-0">Tracking Assets</h3>
                                     </div>
                                     <div className="col text-right">
                                         <Button
                                             color="primary"
                                             href="#pablo"
-                                            onClick={e => e.preventDefault()}
+                                            onClick={e => this.detailTransaction(e, null, -1)}
                                             size="sm"
                                         >
-                                            See all
+                                            Add
                                         </Button>
                                     </div>
                                 </Row>
@@ -301,33 +450,34 @@ class Transactions extends React.Component {
                                 <thead className="thead-light">
                                     <tr>
                                         <th scope="col">#</th>
-                                        <th scope="col">address</th>
+                                        <th scope="col">asset_id</th>
+                                        <th scope="col">symbol</th>
                                         <th scope="col">nick</th>
                                         <th scope="col">qty min token</th>
                                         <th scope="col">decimal</th>
-                                        <th scope="col">detail</th>
+                                        <th scope="col">modify</th>
                                         <th scope="col">remove</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {
                                         renderData?.map((item, index) => {
-                                            const amt = (parseInt(item.qty)/10000).toFixed(4);
                                             return (
                                                 <tr key={item.id.toString()}>
                                                     <th scope="row">{index+1}</th>
                                                     <td>{item.address}</td>
+                                                    <td>{item.tkname}</td>
                                                     <td>{item.nickname}</td>
-                                                    <td>{amt}</td>
+                                                    <td>{item.qty}</td>
                                                     <td>{item.tkdecimal}</td>
                                                     <td>
                                                         <Button
                                                             color="default"
                                                             href="#pablo"
-                                                            onClick={e => this.detailTransaction(e, item)}
+                                                            onClick={e => this.detailTransaction(e, item, index)}
                                                             size="sm"
                                                         >
-                                                            Detail
+                                                            Modify
                                                         </Button>
                                                     </td>
                                                     <td>

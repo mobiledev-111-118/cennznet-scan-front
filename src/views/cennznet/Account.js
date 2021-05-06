@@ -15,7 +15,7 @@ import {
 import ReactBSAlert from "react-bootstrap-sweetalert";
 import NotificationAlert from "react-notification-alert";
 import CardsHeader from "components/Headers/CardsHeader.js";
-import { getAllAddress, addAddress, updateAddress } from "actions/AddressAction";
+import { getAllAddress, addAddress, updateAddress, updateStatus } from "actions/AddressAction";
 import { deleteOneItem } from "actions/AddressAction";
 
 class Dashboard extends React.Component {
@@ -177,6 +177,18 @@ class Dashboard extends React.Component {
             this.setState({renderData: temp})
         }
     }
+    updateActive = (e, index) => {
+        const temp = this.state.renderData;
+        updateStatus(temp[index].id, !temp[index].active).then((res) => {
+            if(res.success) {
+                temp[index].active = !e;
+                this.setState({renderData: temp});
+            } else {
+                this.notify("warning", "Fialed", res.msg);
+            }
+        })
+        
+    }
 
     render() {
         const { renderData, bless, addNew, btnTxt, nickName, addr } = this.state;
@@ -280,6 +292,7 @@ class Dashboard extends React.Component {
                                         <th scope="col">#</th>
                                         <th scope="col">address</th>
                                         <th scope="col">nick</th>
+                                        <th scope="col">hurryup</th>
                                         <th scope="col">Modify</th>
                                         <th scope="col">remove</th>
                                     </tr>
@@ -287,12 +300,20 @@ class Dashboard extends React.Component {
                                 <tbody>
                                     {
                                         renderData?.map((item, index) => {
+                                            console.log(!item.active)
                                             if( index > 9 && bless ) return null;
                                             return (
                                                 <tr key={item.id}>
                                                     <th scope="row">{index+1}</th>
                                                     <td>{item.address}</td>
                                                     <td>{item.nickname}</td>
+                                                    <td>
+                                                        <input
+                                                            type="checkbox"
+                                                            defaultChecked={item.active}
+                                                            onChange={() => this.updateActive(item.active, index)}
+                                                        />
+                                                    </td>
                                                     <td>
                                                         <Button
                                                             color="default"

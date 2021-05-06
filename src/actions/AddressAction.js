@@ -42,6 +42,20 @@ export const updateAddress = (id, nickname, addr) => {
     })
 }
 
+export const updateStatus = (id, active) => {
+    return new Promise((resolve, reject) => {
+        API.POST("/address/updateActive", {id, active}).then((res) => {
+            if( res === null ) {
+                reject(null);
+            } else {
+                resolve(res);
+            }
+        }).catch((err) => {
+            reject(err);
+        })
+    })
+}
+
 export const deleteOneItem = (id) => {
     return new Promise((resolve, reject) => {
         API.GET(`/address/delete/${id}`).then((res) => {
