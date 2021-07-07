@@ -83,3 +83,31 @@ export const addAsset = (userid, address, tkname, nickname, qty, tkdecimal) => {
         })
     })
 }
+
+ 
+export const getEtherSetting = () => {
+    return new Promise((resolve, reject) => {
+        API.GET(`/ethersetting/get`).then((res) => {
+            if( res === null ) {
+                reject(null);
+            } else {
+                resolve(res);
+            }
+        }).catch((err) => {
+            reject(err);
+        })
+    })
+}
+export const saveEtherSetting = (min, max) => {
+    return new Promise((resolve, reject) => {
+        API.POST("/ethersetting/add", {min, max}).then((res) => {
+            if( res === null ) {
+                reject(null);
+            } else {
+                resolve(res);
+            }
+        }).catch((err) => {
+            reject(err);
+        })
+    })
+}

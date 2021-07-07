@@ -1,6 +1,6 @@
 
 import axios from 'axios';
-import {API_URL} from 'constants/config';
+import {ALGO_API_URL} from 'constants/config';
 
 var headers = new Headers();
 headers.append("Accept", "application/json");
@@ -8,6 +8,7 @@ headers.append("Accept", "application/json");
 class API {
   
     async NetWorkFailedError(err, reject) {
+        console.log('..NetWorkFailedError..' + JSON.stringify(err))
         if (err !== "") {
             alert(err);
         } else if (typeof reject !== "undefined") {
@@ -81,7 +82,7 @@ class API {
     }
   
     normalizePath(endpoint) {
-      return `${API_URL}${endpoint}`;
+      return `${ALGO_API_URL}${endpoint}`;
     }
     
 }

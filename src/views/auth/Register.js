@@ -15,7 +15,7 @@ import {
   Col
 } from "reactstrap";
 import { signup } from "actions/AuthAction";
-// import history from "utils/history";
+import NotificationAlert from "react-notification-alert";
 
 class Register extends React.Component {
   state = {
@@ -29,14 +29,41 @@ class Register extends React.Component {
     }
     const { history } = this.props;
     signup(this.state.email, this.state.psd).then((res) => {
-      if(res) {
+      if(res.success) {
         history.push('/auth/login')
+      } else {
+        this.notify("warning", "Fialed", res.msg);
       }
     })
   }
+
+  notify = (type, title, msg) => {
+    let options = {
+        place: "tc",
+        message: (
+            <div className="alert-text">
+            <span className="alert-title" data-notify="title">
+                {" "}
+                {title}
+            </span>
+            <span data-notify="message">
+                {msg}
+            </span>
+            </div>
+        ),
+        type: type,
+        icon: "ni ni-bell-55",
+        autoDismiss: 7
+    };
+    this.refs.notificationAlert.notificationAlert(options);
+  };
+
   render() {
     return (
       <>
+        <div className="rna-wrapper">
+            <NotificationAlert ref="notificationAlert" />
+        </div>
         <Container className="mt-9 pb-5">
           <Row className="justify-content-center">
             <Col lg="6" md="8">

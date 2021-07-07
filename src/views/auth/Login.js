@@ -15,6 +15,7 @@ import {
   Col
 } from "reactstrap";
 import { signin } from "actions/AuthAction";
+import NotificationAlert from "react-notification-alert";
 
 class Login extends React.Component {
   state = {
@@ -30,16 +31,43 @@ class Login extends React.Component {
 
     const { history } = this.props;
     signin(email, psd).then((res) => {
-      if(res.email !== undefined) {
-        localStorage.setItem('user', res.id);
+      if(res.success) {
+        localStorage.setItem('user', res.result.id);
+        localStorage.setItem('email', email);
+
         history.push('/cennznet')
+      } else {
+        this.notify("warning", "Fialed", res.msg);
       }
     })
   }
+  notify = (type, title, msg) => {
+    let options = {
+        place: "tc",
+        message: (
+            <div className="alert-text">
+            <span className="alert-title" data-notify="title">
+                {" "}
+                {title}
+            </span>
+            <span data-notify="message">
+                {msg}
+            </span>
+            </div>
+        ),
+        type: type,
+        icon: "ni ni-bell-55",
+        autoDismiss: 7
+    };
+    this.refs.notificationAlert.notificationAlert(options);
+  };
 
   render() {
     return (
       <>
+      <div className="rna-wrapper">
+          <NotificationAlert ref="notificationAlert" />
+      </div>
         <Container className="mt-8 pb-5">
           <Row className="justify-content-center">
             <Col lg="5" md="7">

@@ -13,19 +13,14 @@ import {
     Col,
     Modal
 } from "reactstrap";
-import { Api } from '@cennznet/api';
 import ReactBSAlert from "react-bootstrap-sweetalert";
 import NotificationAlert from "react-notification-alert";
 import CardsHeader from "components/Headers/CardsHeader.js";
-import { endpoint } from "constants/config";
-import { getAllTrans, getSetting, addSettings, getEtherSetting, saveEtherSetting } from "actions/TransactionAction";
-import { deleteOneItem } from "actions/TransactionAction";
-import { addAsset } from "actions/TransactionAction";
-import { updateAsset } from "actions/TransactionAction";
-import {assetdata} from "constants/config";
-import { email_address } from "constants/config";
+import { getAllTrans, getSetting, addSettings, deleteOneItem, addAsset, updateAsset } from "actions/AlgoAssetsAction";
 
-class Transactions extends React.Component {
+import { getLatestBlockNumber, getAssetOne } from "actions/AlgorandAction";
+
+class Assets extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
@@ -49,11 +44,7 @@ class Transactions extends React.Component {
             badd: false,
             curID: -1,
             invalid: false,
-            
-            
-            etherSetting: false,
-            minPrice: 0,
-            maxPrice: 0,
+            getBNTimer: null
         };
     }   
     
@@ -82,7 +73,6 @@ class Transactions extends React.Component {
         getSetting().then((res) => {
             if( res.success && res.result.length > 0 ) {
                 this.setState({
-                    limit: parseInt(res.result[0].limit),
                     start: parseInt(res.result[0].start),
                     end: parseInt(res.result[0].end),
                 })
@@ -90,17 +80,6 @@ class Transactions extends React.Component {
         })
         const user = await localStorage.getItem('user');
         this.setState({userid: parseInt(user)});
-
-        const email = await localStorage.getItem('email');
-        if( email === email_address ) {
-            getEtherSetting().then((res) => {
-                if( res.success ) {
-                    const etherPrice = res.result[0];
-                    this.setState({etherSetting: true, maxPrice: etherPrice?.maxPrice, minPrice: etherPrice?.minPrice});
-                }
-            })
-
-        }
         
         if( user ) {
             try {
@@ -117,23 +96,18 @@ class Transactions extends React.Component {
             }
         }
 
-        try{
-            const api = await Api.create({
-                provider: endpoint
-            });
-            this.unsubscribe = await api.rpc.chain.subscribeNewHeads((header) => {
-                this.setState({currentBlock: parseInt(header.number).toString(), end: parseInt(header.number) });
-            });
-        } catch (e) {
-            console.log(e);
-        }
+        let getBNTimer1 = setInterval(() => {
+            getLatestBlockNumber().then((res) => {
+                if( res ) {
+                    this.setState({currentBlock: res.lastRound, end: res.lastRound});
+                }
+            })
+        }, 1000);
+        this.setState({getBNTimer : getBNTimer1});
     }
 
     componentWillUnmount(){
-        if( this.api ) {
-            this.unsubscribe();
-            process.exit(0);
-        }
+        clearInterval(this.state.getBNTimer);
     }
     
     saveBlockRange = e => {
@@ -261,16 +235,8 @@ class Transactions extends React.Component {
             })
         }
     }
-
-    saveEtherMinMax = () => {
-        saveEtherSetting(this.state.minPrice, this.state.maxPrice).then((res) => {
-            if( res.success ) {
-                this.notify("success", "Success!", res.result);
-            }
-        })
-    }
     render() {
-        const { renderData, end, start, invalid, modalScript, alertscript, address, tkname, qty, nickname, tkdecimal, badd, minPrice, maxPrice } = this.state;
+        const { renderData, end, start, invalid, modalScript, alertscript, address, tkname, qty, nickname, tkdecimal, badd } = this.state;
         return (
         <>  
             {modalScript && <Modal 
@@ -296,31 +262,33 @@ class Transactions extends React.Component {
                             value={address}
                             placeholder="Input asset id" 
                             className="mr-2 bm-2" 
-                            type="text"
+                            type="number"
                             onChange={(e) => {
                                 const asset = e.target.value;
                                 if( asset === "" ) {
                                     this.setState({
-                                        address: e.target.value,
+                                        address: asset,
                                         invalid: false,
                                     })
                                     return;
                                 }
-                                const exist = assetdata.filter((_i) => _i.asset_id === asset );
-                                if( exist.length === 0 ) {
-                                    this.setState({
-                                        address: e.target.value,
-                                        invalid: true,
-                                    })
-                                } else {
-                                    this.setState({
-                                        address: e.target.value,
-                                        tkname: exist[0].symbol,
-                                        tkdecimal: exist[0].decimalPlaces,
-                                        invalid: false,
-                                    })
-                                }
-
+                                getAssetOne(asset).then((exist) => {
+                                    if( !exist ) {
+                                        this.setState({
+                                            address: asset,
+                                            tkname: "",
+                                            tkdecimal: "",
+                                            invalid: true,
+                                        })
+                                    } else if(exist !== null) {
+                                        this.setState({
+                                            address: asset,
+                                            tkname: exist.unit,
+                                            tkdecimal: exist.decimals,
+                                            invalid: false,
+                                        })
+                                    }
+                                })
                             }}
                         />
                         {invalid && <h6 style={{color: 'red'}}>This asset is invalid!</h6>}
@@ -379,7 +347,7 @@ class Transactions extends React.Component {
             <div className="rna-wrapper">
                 <NotificationAlert ref="notificationAlert" />
             </div>
-            <CardsHeader name="CENNZnet Assets Scan" parentName="CENNZnet" onChange={this.handleChange}/>
+            <CardsHeader name="Algorand Assets Scan" parentName="Algorand" onChange={this.handleChange}/>
             <Container className="mt--6" fluid>
                 <Row>
                     <Col xl="12">
@@ -415,6 +383,7 @@ class Transactions extends React.Component {
                                                     placeholder="Input start block" 
                                                     className="ml-2 mt-2 mr-2 bm-2" 
                                                     type="number"
+                                                    readOnly
                                                     onChange={(e) => this.setState({start: e.target.value})}
                                                 />
                                             </Col>
@@ -425,6 +394,7 @@ class Transactions extends React.Component {
                                                     placeholder="Input end block"
                                                     className="ml-2 mt-2 mr-2 bm-2"
                                                     type="number"
+                                                    readOnly
                                                     onChange={(e) => this.setState({end: e.target.value})}
                                                 />
                                             </Col>
@@ -441,53 +411,6 @@ class Transactions extends React.Component {
                         </Card>
                     </Col>
                 </Row>
-                {this.state.etherSetting && <Row>
-                    <Col xl="12">
-                        <Card>
-                            <CardHeader>
-                                <Row>
-                                    <div className="col">
-                                        <h5 className="h3 mb-0">Ether Min, Max Price</h5>
-                                    </div>
-                                </Row>
-                            </CardHeader>
-                            <CardBody>
-                                <ListGroup className="list my--3" flush>
-                                    <ListGroupItem className="px-0">
-                                        <Row className="align-items-center">
-                                            <Col md="6">
-                                                <div className="ml-2">Min Price</div>
-                                                <Input 
-                                                    value={minPrice}
-                                                    placeholder="Input min price" 
-                                                    className="ml-2 mt-2 mr-2 bm-2" 
-                                                    type="number"
-                                                    onChange={(e) => this.setState({minPrice: e.target.value})}
-                                                />
-                                            </Col>
-                                            <Col md="6">
-                                                <div className="ml-2">Max Price</div>
-                                                <Input
-                                                    value={maxPrice}
-                                                    placeholder="Input max price"
-                                                    className="ml-2 mt-2 mr-2 bm-2"
-                                                    type="number"
-                                                    onChange={(e) => this.setState({maxPrice: e.target.value})}
-                                                />
-                                            </Col>
-                                            <Col className="col-auto center mt-3">
-                                                <Button color="primary" size="md" type="button" onClick={this.saveEtherMinMax}>
-                                                    {minPrice === 0 || minPrice === undefined? "SAVE" : "UPDATE"}
-                                                </Button>
-                                            </Col>
-                                        </Row>
-                                    </ListGroupItem>
-                                    
-                                </ListGroup>
-                            </CardBody>
-                        </Card>
-                    </Col>
-                </Row>}
                 <Row>
                     <Col xl="12">
                         <Card>
@@ -567,4 +490,4 @@ class Transactions extends React.Component {
     }
 }
 
-export default Transactions;
+export default Assets;

@@ -1,9 +1,8 @@
-import axios from "axios";
 import API from "api";
 
-export const getAllAddress = (userid) => {
+export const getSetting = () => {
     return new Promise((resolve, reject) => {
-        API.GET(`/address/get/${userid}`).then((res) => {
+        API.GET(`/algo_setting/get`).then((res) => {
             if( res === null ) {
                 reject(null);
             } else {
@@ -15,37 +14,9 @@ export const getAllAddress = (userid) => {
     })
 }
 
-export const addAddress = (userid, nickname, addr) => {
+export const getAllTrans = (userid) => {
     return new Promise((resolve, reject) => {
-        API.POST("/address/add", {userid, nickname, addr}).then((res) => {
-            if( res === null ) {
-                reject(null);
-            } else {
-                resolve(res);
-            }
-        }).catch((err) => {
-            reject(err);
-        })
-    })
-}
-
-export const updateAddress = (id, nickname, addr) => {
-    return new Promise((resolve, reject) => {
-        API.POST("/address/update", {id, nickname, addr}).then((res) => {
-            if( res === null ) {
-                reject(null);
-            } else {
-                resolve(res);
-            }
-        }).catch((err) => {
-            reject(err);
-        })
-    })
-}
-
-export const updateStatus = (id, active) => {
-    return new Promise((resolve, reject) => {
-        API.POST("/address/updateActive", {id, active}).then((res) => {
+        API.GET(`/algo_asset/get/${userid}`).then((res) => {
             if( res === null ) {
                 reject(null);
             } else {
@@ -59,7 +30,7 @@ export const updateStatus = (id, active) => {
 
 export const deleteOneItem = (id) => {
     return new Promise((resolve, reject) => {
-        API.GET(`/address/delete/${id}`).then((res) => {
+        API.GET(`/algo_asset/delete/${id}`).then((res) => {
             if( res === null ) {
                 reject(null);
             } else {
@@ -71,14 +42,41 @@ export const deleteOneItem = (id) => {
     })
 }
 
-export const getTopHolders = (page = 0) => {
-    
+export const addSettings = (limit, start, end) => {
     return new Promise((resolve, reject) => {
-        API.GET(`/setting/cennzholders/${page}`).then((res) => {
-            if( res.success ) {
-                resolve(res.result);
+        API.POST("/setting/add", {limit, start, end}).then((res) => {
+            if( res === null ) {
+                reject(null);
             } else {
-                resolve([]);
+                resolve(res);
+            }
+        }).catch((err) => {
+            reject(err);
+        })
+    })
+}
+
+export const updateAsset = (id, address, tkname, nickname, qty, tkdecimal) => {
+    return new Promise((resolve, reject) => {
+        API.POST("/algo_asset/update", {id, address, tkname, nickname, qty, tkdecimal}).then((res) => {
+            if( res === null ) {
+                reject(null);
+            } else {
+                resolve(res);
+            }
+        }).catch((err) => {
+            reject(err);
+        })
+    })
+}
+
+export const addAsset = (userid, address, tkname, nickname, qty, tkdecimal) => {
+    return new Promise((resolve, reject) => {
+        API.POST("/algo_asset/add", {userid, address, tkname, nickname, qty, tkdecimal}).then((res) => {
+            if( res === null ) {
+                reject(null);
+            } else {
+                resolve(res);
             }
         }).catch((err) => {
             reject(err);

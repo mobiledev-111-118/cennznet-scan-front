@@ -15,8 +15,7 @@ import {
 import ReactBSAlert from "react-bootstrap-sweetalert";
 import NotificationAlert from "react-notification-alert";
 import CardsHeader from "components/Headers/CardsHeader.js";
-import { getAllAddress, addAddress, updateAddress, updateStatus } from "actions/AddressAction";
-import { deleteOneItem } from "actions/AddressAction";
+import { getAllAddress, addAddress, updateAddress, updateStatus, deleteOneItem } from "actions/AlgoAddressAction";
 
 class Dashboard extends React.Component {
     constructor(props) {
@@ -198,7 +197,7 @@ class Dashboard extends React.Component {
             <div className="rna-wrapper">
                 <NotificationAlert ref="notificationAlert" />
             </div>
-            <CardsHeader name="CENNZnet Address Scan" parentName="CENNZnet" onChange={this.handleChange}/>
+            <CardsHeader name="Algorand Address Scan" parentName="Algorand" onChange={this.handleChange}/>
             <Container className="mt--6" fluid>
                 {addNew && <Row>
                     <Col xl="12">
